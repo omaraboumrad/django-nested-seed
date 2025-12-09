@@ -81,3 +81,32 @@ testapp:
     yaml_file = tmp_path / "with_teams.yaml"
     yaml_file.write_text(yaml_content)
     return str(yaml_file)
+
+
+@pytest.fixture
+def example_yaml_self_referential(tmp_path):
+    """Create YAML with self-referential parent relationship (Category -> parent Category)."""
+    yaml_content = """
+testapp:
+  Category:
+    - name: "Programming"
+      slug: "programming"
+      children:
+        - name: "Python"
+          slug: "python"
+          children:
+            - name: "Django"
+              slug: "django"
+            - name: "Flask"
+              slug: "flask"
+        - name: "JavaScript"
+          slug: "javascript"
+          children:
+            - name: "React"
+              slug: "react"
+            - name: "Vue"
+              slug: "vue"
+"""
+    yaml_file = tmp_path / "self_referential.yaml"
+    yaml_file.write_text(yaml_content)
+    return str(yaml_file)

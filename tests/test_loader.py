@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from django_nested_seed.config.base import SeedConfig
 from django_nested_seed.core.loader import SeedLoader
-from tests.testapp.models import Profile, Company, Team
+from tests.testapp.models import Profile, Company, Team, Category
 
 
 @pytest.mark.django_db
@@ -83,3 +83,55 @@ class TestSeedLoader:
 
         user_instance = loader.registry.get("auth.User.testuser")
         assert user_instance.username == "testuser"
+
+    def test_self_referential_parent(self, example_yaml_self_referential):
+        """Test loading categories with self-referential parent relationship."""
+        config = SeedConfig.from_django_settings()
+        loader = SeedLoader(config=config, verbose=False)
+
+        loader.load([example_yaml_self_referential])
+
+        # Verify all categories were created
+        assert Category.objects.count() == 7
+
+        # Verify root category (Programming) has no parent
+        programming = Category.objects.get(slug="programming")
+        assert programming.name == "Programming"
+        assert programming.parent is None
+
+        # Verify first level children
+        python_cat = Category.objects.get(slug="python")
+        assert python_cat.name == "Python"
+        assert python_cat.parent == programming
+
+        javascript_cat = Category.objects.get(slug="javascript")
+        assert javascript_cat.name == "JavaScript"
+        assert javascript_cat.parent == programming
+
+        # Verify second level children (nested under Python)
+        django_cat = Category.objects.get(slug="django")
+        assert django_cat.name == "Django"
+        assert django_cat.parent == python_cat
+
+        flask_cat = Category.objects.get(slug="flask")
+        assert flask_cat.name == "Flask"
+        assert flask_cat.parent == python_cat
+
+        # Verify second level children (nested under JavaScript)
+        react_cat = Category.objects.get(slug="react")
+        assert react_cat.name == "React"
+        assert react_cat.parent == javascript_cat
+
+        vue_cat = Category.objects.get(slug="vue")
+        assert vue_cat.name == "Vue"
+        assert vue_cat.parent == javascript_cat
+
+        # Verify reverse relationships using the related_name
+        assert programming.children.count() == 2
+        assert set(programming.children.values_list("slug", flat=True)) == {"python", "javascript"}
+
+        assert python_cat.children.count() == 2
+        assert set(python_cat.children.values_list("slug", flat=True)) == {"django", "flask"}
+
+        assert javascript_cat.children.count() == 2
+        assert set(javascript_cat.children.values_list("slug", flat=True)) == {"react", "vue"}

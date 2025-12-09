@@ -323,8 +323,8 @@ class DescriptorBuilder:
                 # Remove reference key from fields
                 fields_data = {k: v for k, v in fields_data.items() if k != reference_key}
             else:
-                # Auto-generate key
-                object_key = f"{target_model_name.lower()}_{auto_key_counter}"
+                # Auto-generate key with parent context to avoid conflicts in nested hierarchies
+                object_key = f"{parent_descriptor.object_key}_{nested_key}_{auto_key_counter}"
                 auto_key_counter += 1
 
             # Full identity for nested FK children (can be referenced from M2M fields)
