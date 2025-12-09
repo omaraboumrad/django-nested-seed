@@ -1,5 +1,16 @@
 # Model with Reverse ForeignKey (Nested Collection)
 # Nest child objects under their parent using the reverse accessor
+#
+# Models:
+# -------
+# class Company(models.Model):
+#     name = models.CharField(max_length=100)
+#     code = models.CharField(max_length=20)
+#
+# class Team(models.Model):
+#     name = models.CharField(max_length=100)
+#     company = models.ForeignKey(Company, on_delete=models.CASCADE)
+#     # reverse accessor: team_set
 
 testapp:
   Company:

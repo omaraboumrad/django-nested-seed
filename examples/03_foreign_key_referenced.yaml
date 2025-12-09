@@ -1,5 +1,14 @@
 # Model with ForeignKey (Referenced)
 # Reference another object using $ref_key syntax
+#
+# Models:
+# -------
+# from django.contrib.auth.models import User
+#
+# class Author(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="authors")
+#     pen_name = models.CharField(max_length=100)
+#     bio = models.TextField()
 
 auth:
   User:

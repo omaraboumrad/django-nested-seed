@@ -1,5 +1,24 @@
 # Model with ManyToMany (Through)
 # M2M relationships with custom through models containing extra fields
+#
+# Models:
+# -------
+# from django.contrib.auth.models import User
+#
+# class Company(models.Model):
+#     name = models.CharField(max_length=100)
+#     code = models.CharField(max_length=20)
+#
+# class Membership(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     team = models.ForeignKey('Team', on_delete=models.CASCADE)
+#     role = models.CharField(max_length=50)
+#     date_joined = models.DateField()
+#
+# class Team(models.Model):
+#     name = models.CharField(max_length=100)
+#     company = models.ForeignKey(Company, on_delete=models.CASCADE)
+#     members = models.ManyToManyField(User, through=Membership, related_name="teams")
 
 auth:
   User:

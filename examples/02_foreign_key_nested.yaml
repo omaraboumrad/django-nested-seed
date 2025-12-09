@@ -1,5 +1,14 @@
 # Model with ForeignKey (Nested)
 # ForeignKey with inline object creation
+#
+# Models:
+# -------
+# from django.contrib.auth.models import User
+#
+# class Author(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="authors")
+#     pen_name = models.CharField(max_length=100)
+#     bio = models.TextField()
 
 testapp:
   Author:
