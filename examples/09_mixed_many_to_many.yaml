@@ -1,0 +1,27 @@
+# Model with Mixed ManyToMany (References + Inline)
+# Mix references to existing objects with inline object definitions
+
+testapp:
+  Category:
+    - $ref: python
+      name: "Python"
+      slug: "python"
+
+  Book:
+    - title: "Django Best Practices"
+      author:
+        user:
+          username: "john"
+          email: "john@example.com"
+        pen_name: "John Smith"
+        bio: "Django expert"
+      publisher:
+        name: "Tech Press"
+        country: "USA"
+      status: "PUBLISHED"
+      categories:
+        - "$python"  # Referenced category
+        - name: "Django"  # Inline category
+          slug: "django"
+        - name: "Web Frameworks"  # Another inline category
+          slug: "web-frameworks"

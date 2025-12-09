@@ -1,0 +1,24 @@
+# Model with ForeignKey (Mixed)
+# Combine nested and referenced ForeignKeys in the same structure
+
+testapp:
+  Publisher:
+    - $ref: oreilly
+      name: "O'Reilly Media"
+      country: "USA"
+
+  Author:
+    - $ref: alice
+      user:
+        username: "alice"
+        email: "alice@example.com"
+      pen_name: "Alice Smith"
+      bio: "Software engineer"
+
+  Book:
+    - title: "Python Patterns"
+      author: "$alice"  # Referenced FK
+      publisher:  # Nested FK
+        name: "Tech Books Inc"
+        country: "UK"
+      status: "PUBLISHED"

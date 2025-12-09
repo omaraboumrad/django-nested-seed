@@ -1,0 +1,10 @@
+# Model with ForeignKey (Nested)
+# ForeignKey with inline object creation
+
+testapp:
+  Author:
+    - user:
+        username: "john"
+        email: "john@example.com"
+      pen_name: "John Doe"
+      bio: "Python enthusiast"

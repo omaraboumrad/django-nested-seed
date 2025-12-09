@@ -1,0 +1,25 @@
+# Model with ManyToMany (Through)
+# M2M relationships with custom through models containing extra fields
+
+auth:
+  User:
+    - $ref: alice
+      username: "alice"
+      email: "alice@example.com"
+    - $ref: bob
+      username: "bob"
+      email: "bob@example.com"
+
+testapp:
+  Company:
+    - name: "Tech Corp"
+      code: "TECH"
+      team_set:
+        - name: "Engineering Team"
+          members:  # M2M with through model
+            - user: "$alice"
+              role: "Lead Engineer"
+              date_joined: "2024-01-01"
+            - user: "$bob"
+              role: "Developer"
+              date_joined: "2024-02-15"

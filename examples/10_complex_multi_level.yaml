@@ -1,0 +1,80 @@
+# Complex Multi-Level Nesting
+# Combine all relationship types for complex data structures
+
+auth:
+  User:
+    - username: "admin"
+      email: "admin@example.com"
+      is_staff: true
+      is_superuser: true
+      profile:  # OneToOne nesting
+        role: "ADMIN"
+        timezone: "America/New_York"
+
+    - $ref: alice
+      username: "alice"
+      email: "alice@example.com"
+      profile:
+        role: "ENGINEER"
+        timezone: "America/Los_Angeles"
+
+    - $ref: bob
+      username: "bob"
+      email: "bob@example.com"
+      profile:
+        role: "ENGINEER"
+        timezone: "Europe/London"
+
+testapp:
+  Category:
+    - $ref: python
+      name: "Python"
+      slug: "python"
+
+  Publisher:
+    - $ref: oreilly
+      name: "O'Reilly Media"
+      country: "USA"
+
+  Company:
+    - name: "Tech Corp"
+      code: "TECH"
+      team_set:  # Reverse ForeignKey nesting
+        - name: "Engineering Team"
+          members:  # M2M with through model
+            - user: "$alice"
+              role: "Lead Engineer"
+              date_joined: "2024-01-01"
+            - user: "$bob"
+              role: "Senior Developer"
+              date_joined: "2024-01-15"
+
+        - name: "Product Team"
+          members:
+            - user: "$alice"
+              role: "Tech Lead"
+              date_joined: "2024-02-01"
+
+  Author:
+    - user: "$alice"  # ForeignKey reference
+      pen_name: "Alice Smith"
+      bio: "Software engineer and technical writer"
+      books:  # Reverse ForeignKey
+        - title: "Python Design Patterns"
+          publisher: "$oreilly"
+          status: "PUBLISHED"
+          published_at: "2024-03-15"
+          categories:  # Mixed M2M: references + inline
+            - "$python"
+            - name: "Design Patterns"
+              slug: "design-patterns"
+            - name: "Software Engineering"
+              slug: "software-engineering"
+
+        - title: "Django Deep Dive"
+          publisher: "$oreilly"
+          status: "DRAFT"
+          categories:
+            - "$python"
+            - name: "Django"
+              slug: "django"

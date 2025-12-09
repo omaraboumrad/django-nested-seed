@@ -1,0 +1,10 @@
+# Model with Reverse ForeignKey (Nested Collection)
+# Nest child objects under their parent using the reverse accessor
+
+testapp:
+  Company:
+    - name: "ACME Corp"
+      code: "ACME"
+      team_set:  # Reverse FK accessor
+        - name: "Engineering Team"
+        - name: "Product Team"

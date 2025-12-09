@@ -1,0 +1,11 @@
+# Model with OneToOne
+# OneToOne relationships can be nested directly under the parent object
+
+auth:
+  User:
+    - username: "admin"
+      email: "admin@example.com"
+      is_staff: true
+      profile:  # Nested OneToOne
+        role: "ADMIN"
+        timezone: "UTC"

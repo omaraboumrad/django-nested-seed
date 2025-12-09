@@ -1,0 +1,33 @@
+# Model with ManyToMany
+# ManyToMany fields accept a list of references
+
+testapp:
+  Category:
+    - $ref: python
+      name: "Python"
+      slug: "python"
+    - $ref: web
+      name: "Web Development"
+      slug: "web"
+
+  Publisher:
+    - $ref: oreilly
+      name: "O'Reilly Media"
+      country: "USA"
+
+  Author:
+    - $ref: guido
+      user:
+        username: "guido"
+        email: "guido@example.com"
+      pen_name: "Guido van Rossum"
+      bio: "Creator of Python"
+
+  Book:
+    - title: "Learning Python"
+      author: "$guido"
+      publisher: "$oreilly"
+      status: "PUBLISHED"
+      categories:  # ManyToMany references
+        - "$python"
+        - "$web"

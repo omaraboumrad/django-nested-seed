@@ -1,0 +1,14 @@
+# Model with ForeignKey (Referenced)
+# Reference another object using $ref_key syntax
+
+auth:
+  User:
+    - $ref: john
+      username: "john"
+      email: "john@example.com"
+
+testapp:
+  Author:
+    - user: "$john"  # ForeignKey reference using $ref_key
+      pen_name: "John Doe"
+      bio: "Python enthusiast"

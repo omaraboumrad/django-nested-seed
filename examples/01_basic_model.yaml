@@ -1,0 +1,9 @@
+# Basic Model
+# Simple objects with primitive fields
+
+testapp:
+  Category:
+    - name: "Python"
+      slug: "python"
+    - name: "Django"
+      slug: "django"
