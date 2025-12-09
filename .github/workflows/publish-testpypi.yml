@@ -3,24 +3,51 @@ name: Publish to TestPyPI
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  publish-test:
+  release-build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.x"
 
-      - name: Install build tools
-        run: pip install build
+      - name: Build release distributions
+        run: |
+          python -m pip install build
+          python -m build
 
-      - name: Build package
-        run: python -m build
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+  testpypi-publish:
+    runs-on: ubuntu-latest
+    needs:
+      - release-build
+
+    permissions:
+      id-token: write
+
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/django-nested-seed
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
 
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-          password: ${{ secrets.TESTPYPI_API_TOKEN }}
