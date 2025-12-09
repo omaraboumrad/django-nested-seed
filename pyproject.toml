@@ -9,7 +9,10 @@ dependencies = [
     "pyyaml>=6.0",
 ]
 license = {text = "MIT"}
-authors = []
+authors = [
+    {name = "Omar Abou Mrad", email = "omar.aboumrad@gmail.com"}
+]
+keywords = ["django", "seed", "fixtures", "yaml", "testing", "database"]
 classifiers = [
     "Framework :: Django",
     "Framework :: Django :: 4.2",
@@ -21,6 +24,11 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
 ]
+
+[project.urls]
+Homepage = "https://github.com/omaraboumrad/django-nested-seed"
+Repository = "https://github.com/omaraboumrad/django-nested-seed"
+Issues = "https://github.com/omaraboumrad/django-nested-seed/issues"
 
 [project.optional-dependencies]
 dev = [
