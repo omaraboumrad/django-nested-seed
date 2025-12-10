@@ -329,20 +329,31 @@ class SeedLoader:
 
         # Find target reference in fields
         target_reference = None
+        target_field_obj = None
         for field_name, value in list(through_descriptor.fields.items()):
-            if isinstance(value, str) and self.resolver.is_reference_pattern(value):
+            if isinstance(value, str) and (self.resolver.is_reference_pattern(value) or self.resolver.is_db_lookup_pattern(value)):
                 # Check if this field matches the target field
                 if field_name == target_field_name:
                     target_reference = value
                     through_descriptor.fields.pop(field_name)
+                    # Get field object for database lookups
+                    try:
+                        target_field_obj = through_descriptor.model_class._meta.get_field(target_field_name)
+                    except Exception:
+                        pass
                     break
 
         if not target_reference:
             # Try to find it in the first reference-like field
             for field_name, value in list(through_descriptor.fields.items()):
-                if isinstance(value, str) and self.resolver.is_reference_pattern(value):
+                if isinstance(value, str) and (self.resolver.is_reference_pattern(value) or self.resolver.is_db_lookup_pattern(value)):
                     target_reference = value
                     through_descriptor.fields.pop(field_name)
+                    # Get field object for database lookups
+                    try:
+                        target_field_obj = through_descriptor.model_class._meta.get_field(field_name)
+                    except Exception:
+                        pass
                     break
 
         if not target_reference:
@@ -350,7 +361,18 @@ class SeedLoader:
                 f"Could not find target reference in through model data for {through_descriptor.identity}"
             )
 
-        target_instance = self.registry.get(target_reference)
+        # Resolve target instance (handles both $ref and @lookup)
+        if self.resolver.is_db_lookup_pattern(target_reference):
+            if target_field_obj and hasattr(target_field_obj, 'related_model'):
+                target_model = target_field_obj.related_model
+                lookup_params = self.resolver.parse_db_lookup(target_reference)
+                target_instance = self.registry.get_from_db(target_model, lookup_params)
+            else:
+                raise ValueError(
+                    f"Cannot resolve database lookup for through model: field not found or not a relation"
+                )
+        else:
+            target_instance = self.registry.get(target_reference)
 
         # Add the FK references to fields
         through_descriptor.fields[source_field_name] = source_instance
@@ -371,7 +393,7 @@ class SeedLoader:
         self, field_name: str, value: Any, model_class: type
     ) -> Any:
         """
-        Resolve a field value, handling references.
+        Resolve a field value, handling references and database lookups.
 
         Args:
             field_name: Field name
@@ -381,6 +403,24 @@ class SeedLoader:
         Returns:
             Resolved value
         """
+        # Check if it's a database lookup pattern
+        if isinstance(value, str) and self.resolver.is_db_lookup_pattern(value):
+            # Get the field
+            try:
+                field = model_class._meta.get_field(field_name)
+            except Exception:
+                # Field doesn't exist on model, return value as-is
+                return value
+
+            # Check if it's FK or O2O (database lookups only work for relationships)
+            if self.fk_handler.can_handle(field) or self.o2o_handler.can_handle(field):
+                # Get the related model
+                related_model = field.related_model
+                # Parse the lookup
+                lookup_params = self.resolver.parse_db_lookup(value)
+                # Fetch from database
+                return self.registry.get_from_db(related_model, lookup_params)
+
         # Check if it's a reference pattern
         if isinstance(value, str) and self.resolver.is_reference_pattern(value):
             # Get the field
@@ -425,7 +465,7 @@ class SeedLoader:
             # Resolve each M2M field
             for field_name, references in descriptor.m2m_fields.items():
                 self.m2m_handler.resolve_and_set(
-                    instance, field_name, references, self.registry
+                    instance, field_name, references, self.registry, self.resolver
                 )
                 self._log(
                     f"  [{descriptor.identity}] Set {field_name} ({len(references)} references) ✓"

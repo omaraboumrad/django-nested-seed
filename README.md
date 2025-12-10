@@ -59,6 +59,8 @@ See the [`examples/`](examples/) directory for complete examples of each feature
 - [**ManyToMany (Through)**](examples/08_many_to_many_through.yaml) - M2M with custom through models
 - [**Mixed ManyToMany**](examples/09_mixed_many_to_many.yaml) - M2M with both references and inline objects
 - [**Complex Multi-Level**](examples/10_complex_multi_level.yaml) - Comprehensive example combining all features
+- [**Database Lookups**](examples/11_database_lookups.yaml) - Reference existing database records using `@lookup`
+- [**Mixed References and Lookups**](examples/12_mixed_ref_and_lookup.yaml) - Combine `$ref` and `@lookup`
 
 ## YAML Structure
 
@@ -82,9 +84,17 @@ app_label:
       related_field:
         nested_field: value
 
-    # ForeignKey - reference to existing object
+    # ForeignKey - reference to existing object (defined in YAML)
     - field_name: value
       related_field: "$my_key"    # Reference using $ref_key
+
+    # ForeignKey - reference to existing database record
+    - field_name: value
+      related_field: "@pk:123"    # Lookup by primary key
+    - field_name: value
+      related_field: "@username:alice"    # Lookup by field
+    - field_name: value
+      related_field: "@{name:John,email:john@example.com}"    # Lookup by multiple fields
 
     # OneToOne - nested directly under parent
     - field_name: value
@@ -100,13 +110,20 @@ app_label:
     # ManyToMany - list of references
     - field_name: value
       many_to_many_field:
-        - "$ref_key_1"
+        - "$ref_key_1"            # Reference YAML object
         - "$ref_key_2"
 
-    # ManyToMany - mixed references and inline objects
+    # ManyToMany - with database lookups
     - field_name: value
       many_to_many_field:
-        - "$ref_key"              # Reference existing object
+        - "@slug:python"          # Reference existing database record
+        - "@pk:42"
+
+    # ManyToMany - mixed references, lookups, and inline objects
+    - field_name: value
+      many_to_many_field:
+        - "$ref_key"              # Reference YAML object
+        - "@slug:existing"        # Reference database record
         - inline_field: value     # Create new object inline
 
     # ManyToMany with through model (extra fields)
@@ -125,9 +142,50 @@ app_label:
 - Supports OneToOne, ForeignKey, and ManyToMany relationships
 - ManyToMany with custom through models (extra fields on intermediate table)
 - Mixed relation references and inline definitions
+- **Database lookups** - Reference existing database records
 - Transaction safety with automatic rollback on errors
 - Multiple files can be loaded together
 - Topological sorting handles dependencies automatically
+
+## Database Lookups
+
+Reference existing database records using `@lookup` syntax instead of creating new ones:
+
+**Lookup by primary key:**
+```yaml
+author: "@pk:123"  # Lookup by primary key
+```
+
+**Lookup by single field:**
+```yaml
+author: "@username:alice"  # Lookup by unique field
+category: "@slug:python"   # Lookup by slug
+```
+
+**Lookup by multiple fields:**
+```yaml
+publisher: "@{name:O'Reilly Media,country:USA}"  # Lookup by multiple fields
+```
+
+**With Django's related field syntax:**
+```yaml
+author: "@user__username:alice"  # Lookup Author where user.username='alice'
+```
+
+**In ManyToMany fields:**
+```yaml
+Book:
+  - title: "Django Book"
+    categories:
+      - "$new_category"    # Reference YAML object
+      - "@slug:existing"   # Reference database record
+```
+
+**Features:**
+- Results are cached to avoid redundant queries
+- Clear error messages if record not found
+- Works with ForeignKey, OneToOne, and ManyToMany fields
+- Can be mixed with `$ref` references in the same file
 
 ## Configuration
 

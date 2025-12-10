@@ -31,6 +31,12 @@ class ModelResolver:
     # Legacy format: app_label.ModelName.object_key
     REFERENCE_PATTERN = re.compile(r"^\$[a-z_][a-z0-9_]*$|^[a-z_][a-z0-9_]*\.[A-Z][A-Za-z0-9_]*\.[a-z_][a-z0-9_]*$")
 
+    # Pattern for database lookup strings: @pk:123, @field:value, or @{field:value,field2:value2}
+    # @pk:id format: @pk: followed by digits
+    # @field:value format: @followed_by_field_name: followed by value
+    # @{...} format: @{ followed by field:value pairs separated by commas }
+    DB_LOOKUP_PATTERN = re.compile(r"^@(?:pk:\d+|[a-z_][a-z0-9_]*:.+|\{.+\})$", re.DOTALL)
+
     def __init__(self, config: SeedConfig):
         """
         Initialize resolver with configuration.
@@ -109,8 +115,8 @@ class ModelResolver:
         """
         Check if a value matches the reference pattern.
 
-        Reference pattern: app_label.ModelName.object_key
-        Example: auth.User.admin, testapp.Category.django
+        Reference pattern: app_label.ModelName.object_key or $ref_key
+        Example: auth.User.admin, testapp.Category.django, $alice
 
         Args:
             value: Value to check
@@ -122,6 +128,138 @@ class ModelResolver:
             return False
 
         return bool(self.REFERENCE_PATTERN.match(value))
+
+    def is_db_lookup_pattern(self, value: Any) -> bool:
+        """
+        Check if a value matches the database lookup pattern.
+
+        Database lookup pattern: @pk:123, @field:value, or @{field:value,field2:value2}
+        Examples: @pk:42, @username:alice, @{name:Python,slug:python}
+
+        Args:
+            value: Value to check
+
+        Returns:
+            True if value is a string matching database lookup pattern
+        """
+        if not isinstance(value, str):
+            return False
+
+        return bool(self.DB_LOOKUP_PATTERN.match(value))
+
+    def is_any_reference(self, value: Any) -> bool:
+        """
+        Check if a value is either a reference pattern or database lookup pattern.
+
+        Args:
+            value: Value to check
+
+        Returns:
+            True if value is any kind of reference
+        """
+        return self.is_reference_pattern(value) or self.is_db_lookup_pattern(value)
+
+    def parse_db_lookup(self, lookup_str: str) -> dict[str, Any]:
+        """
+        Parse a database lookup string into lookup parameters.
+
+        Supports three formats:
+        - @pk:123 -> {"pk": 123}
+        - @username:alice -> {"username": "alice"}
+        - @{name:Python,slug:python} -> {"name": "Python", "slug": "python"}
+
+        Args:
+            lookup_str: Database lookup string (e.g., "@pk:123", "@username:alice")
+
+        Returns:
+            Dictionary of field names to values for Django ORM lookup
+
+        Raises:
+            ValueError: If lookup string format is invalid
+        """
+        if not lookup_str.startswith("@"):
+            raise ValueError(f"Database lookup must start with '@': {lookup_str}")
+
+        lookup_str = lookup_str[1:]  # Remove @ prefix
+
+        # Handle @{field:value,field2:value2} format
+        if lookup_str.startswith("{") and lookup_str.endswith("}"):
+            return self._parse_multi_field_lookup(lookup_str[1:-1])
+
+        # Handle @field:value format
+        if ":" not in lookup_str:
+            raise ValueError(f"Invalid database lookup format: @{lookup_str}")
+
+        field_name, field_value = lookup_str.split(":", 1)
+        field_name = field_name.strip()
+        field_value = field_value.strip()
+
+        # Convert pk to integer
+        if field_name == "pk":
+            try:
+                field_value = int(field_value)
+            except ValueError:
+                raise ValueError(f"Primary key must be an integer: @pk:{field_value}")
+
+        return {field_name: field_value}
+
+    def _parse_multi_field_lookup(self, content: str) -> dict[str, Any]:
+        """
+        Parse multi-field lookup content.
+
+        Args:
+            content: Content inside curly braces (e.g., "name:Python,slug:python")
+
+        Returns:
+            Dictionary of field names to values
+
+        Raises:
+            ValueError: If format is invalid
+        """
+        result = {}
+
+        # Split by commas, but handle commas within values
+        # Simple approach: split by comma and reassemble if needed
+        parts = []
+        current = []
+        in_value = False
+
+        for char in content:
+            if char == ':' and not in_value:
+                in_value = True
+                current.append(char)
+            elif char == ',' and in_value:
+                parts.append(''.join(current))
+                current = []
+                in_value = False
+            else:
+                current.append(char)
+
+        # Add the last part
+        if current:
+            parts.append(''.join(current))
+
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+
+            if ":" not in part:
+                raise ValueError(f"Invalid field:value pair in lookup: {part}")
+
+            field_name, field_value = part.split(":", 1)
+            field_name = field_name.strip()
+            field_value = field_value.strip()
+
+            if not field_name:
+                raise ValueError(f"Empty field name in lookup: {part}")
+
+            result[field_name] = field_value
+
+        if not result:
+            raise ValueError("Empty database lookup")
+
+        return result
 
     def get_model_fields(self, model_class: type[models.Model]) -> dict[str, Field]:
         """

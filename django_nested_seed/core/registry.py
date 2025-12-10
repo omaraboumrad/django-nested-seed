@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db import models
 
 from django_nested_seed.core.exceptions import ReferenceError
@@ -64,6 +65,7 @@ class ObjectRegistry:
         self._registry: dict[str, models.Model] = {}
         self._ref_key_index: dict[str, str] = {}  # Maps ref_key -> full identity
         self._creation_order: list[str] = []
+        self._db_lookup_cache: dict[str, models.Model] = {}  # Cache for database lookups
 
     def register(self, identity: str, instance: models.Model, ref_key: str | None = None) -> None:
         """
@@ -156,3 +158,46 @@ class ObjectRegistry:
         self._registry.clear()
         self._ref_key_index.clear()
         self._creation_order.clear()
+        self._db_lookup_cache.clear()
+
+    def get_from_db(self, model_class: type[models.Model], lookup_params: dict[str, Any]) -> models.Model:
+        """
+        Get an instance from the database using lookup parameters.
+
+        Results are cached to avoid redundant queries.
+
+        Args:
+            model_class: Django model class to query
+            lookup_params: Dictionary of field names to values for Django ORM lookup
+
+        Returns:
+            Django model instance
+
+        Raises:
+            ReferenceError: If object not found or multiple objects returned
+        """
+        # Create cache key
+        cache_key = f"{model_class._meta.app_label}.{model_class.__name__}:{lookup_params}"
+
+        # Check cache first
+        if cache_key in self._db_lookup_cache:
+            return self._db_lookup_cache[cache_key]
+
+        # Query database
+        try:
+            instance = model_class.objects.get(**lookup_params)
+            # Cache the result
+            self._db_lookup_cache[cache_key] = instance
+            return instance
+        except ObjectDoesNotExist:
+            lookup_str = ", ".join(f"{k}={v}" for k, v in lookup_params.items())
+            raise ReferenceError(
+                f"Database lookup failed: {model_class.__name__} with {lookup_str} does not exist. "
+                f"Make sure the record exists in the database before referencing it."
+            )
+        except MultipleObjectsReturned:
+            lookup_str = ", ".join(f"{k}={v}" for k, v in lookup_params.items())
+            raise ReferenceError(
+                f"Database lookup failed: Multiple {model_class.__name__} objects found with {lookup_str}. "
+                f"Use more specific lookup parameters to uniquely identify the record."
+            )

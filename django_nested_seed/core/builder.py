@@ -159,8 +159,8 @@ class DescriptorBuilder:
                     self._process_nested_list_field(descriptor, field_name, value, nested_info)
                     continue
 
-                # Check if any item is a reference or dict
-                has_references = any(self.resolver.is_reference_pattern(v) for v in value if isinstance(v, str))
+                # Check if any item is a reference (YAML ref or database lookup) or dict
+                has_references = any(self.resolver.is_any_reference(v) for v in value if isinstance(v, str))
                 has_dicts = any(isinstance(v, dict) for v in value)
 
                 if has_references or has_dicts:
@@ -447,8 +447,8 @@ class DescriptorBuilder:
 
         # Standard M2M without through model
         for item in value:
-            if isinstance(item, str) and self.resolver.is_reference_pattern(item):
-                # Reference string
+            if isinstance(item, str) and self.resolver.is_any_reference(item):
+                # Reference string (can be $ref or @lookup)
                 references.append(item)
             elif isinstance(item, dict):
                 # Inline object definition

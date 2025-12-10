@@ -1,0 +1,63 @@
+# Database Lookups
+# Reference existing database records using @lookup syntax
+#
+# IMPORTANT: This example assumes you already have records in the database.
+# Before running this example, you should create some existing records:
+#
+# from django.contrib.auth.models import User
+# from testapp.models import Category, Publisher
+#
+# User.objects.create(username="john", email="john@example.com")
+# Category.objects.create(name="Python", slug="python")
+# Publisher.objects.create(name="O'Reilly Media", country="USA")
+#
+# Models:
+# -------
+# from django.contrib.auth.models import User
+#
+# class Category(models.Model):
+#     name = models.CharField(max_length=100)
+#     slug = models.SlugField(unique=True)
+#
+# class Publisher(models.Model):
+#     name = models.CharField(max_length=100)
+#     country = models.CharField(max_length=100)
+#
+# class Author(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="authors")
+#     pen_name = models.CharField(max_length=100)
+#     bio = models.TextField()
+#
+# class Book(models.Model):
+#     title = models.CharField(max_length=200)
+#     author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="books")
+#     publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE, related_name="books")
+#     categories = models.ManyToManyField(Category, related_name="books")
+#     status = models.CharField(max_length=20)
+
+testapp:
+  Author:
+    - $ref: alice
+      # Lookup existing user by username
+      user: "@username:john"
+      pen_name: "John Smith"
+      bio: "An experienced author"
+
+  Book:
+    - title: "Python Best Practices"
+      author: "$alice"
+      # Lookup existing publisher by multiple fields
+      publisher: "@{name:O'Reilly Media,country:USA}"
+      status: "PUBLISHED"
+      categories:
+        # Lookup existing category by slug
+        - "@slug:python"
+
+    - title: "Advanced Django"
+      author: "$alice"
+      # Lookup existing publisher by primary key (assuming pk=1)
+      # publisher: "@pk:1"
+      publisher: "@{name:O'Reilly Media,country:USA}"
+      status: "DRAFT"
+      categories:
+        - "@slug:python"

@@ -1,0 +1,64 @@
+# Mixed References and Database Lookups
+# Combine $ref (YAML references) with @lookup (database lookups)
+#
+# This example shows how you can:
+# - Create new records using $ref
+# - Reference existing database records using @lookup
+# - Mix both approaches in the same YAML file
+#
+# IMPORTANT: This assumes some existing records in the database.
+# Before running, create an existing category:
+#
+# from testapp.models import Category
+# Category.objects.create(name="Web Development", slug="web")
+#
+# Models: Same as previous examples (User, Author, Publisher, Book, Category)
+
+auth:
+  User:
+    # Create new user with $ref for later reference
+    - $ref: alice
+      username: "alice"
+      email: "alice@example.com"
+
+testapp:
+  Category:
+    # Create new category with $ref
+    - $ref: python_cat
+      name: "Python"
+      slug: "python"
+
+  Publisher:
+    # Create new publisher with $ref
+    - $ref: tech_books
+      name: "Tech Books Inc"
+      country: "UK"
+
+  Author:
+    - $ref: alice_author
+      # Reference newly created user using $ref
+      user: "$alice"
+      pen_name: "Alice Wonder"
+      bio: "Full-stack developer"
+
+  Book:
+    - title: "Django for Beginners"
+      # Reference newly created author using $ref
+      author: "$alice_author"
+      # Reference newly created publisher using $ref
+      publisher: "$tech_books"
+      status: "PUBLISHED"
+      categories:
+        # Mix: reference newly created category with $ref
+        - "$python_cat"
+        # Mix: reference existing database category with @lookup
+        - "@slug:web"
+
+    - title: "Python Web Development"
+      author: "$alice_author"
+      publisher: "$tech_books"
+      status: "DRAFT"
+      categories:
+        # Both newly created and existing categories
+        - "$python_cat"
+        - "@slug:web"
