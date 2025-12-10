@@ -2,6 +2,24 @@
 
 A Django package for loading seed data from YAML files with support for nested relationships.
 
+Before you use this package you should ask yourself the following questions:
+
+- Do I want the ability to programmatically create seed/fixture data?
+- Do I want the ability to generate random seed/fixture data?
+- Do I want the ability to keep my data in sync with what's in the database?
+- Do I care more about using these fixtures for unit testing?
+
+If you answered **Yes** to any of the above questions, then you're probably looking for either [Django Fixtures](<https://docs.djangoproject.com/en/5.2/topics/db/fixtures/>), [Django Management Commands](<https://docs.djangoproject.com/en/5.2/howto/custom-management-commands/>), [Factory Boy](<https://factoryboy.readthedocs.io/en/stable/>) or any of the excellent packages available on [Django Packages' Fixture Generation Category](<https://djangopackages.org/grids/g/fixtures/>)
+
+So when would you want to use **this** package?
+
+- You want bootstrap data for development or demonstration purposes
+- You prefer to have it declarative rather than programmatic
+- You want deeply nested relationships declarations instead of flat
+- Your workflow involves modifying the fixtures in the file and resetting the data, not exporting what you edited from your site.
+
+If that's the case, then read on!
+
 ## Installation
 
 ```bash
@@ -18,7 +36,35 @@ INSTALLED_APPS = [
 
 ## Quick Start
 
-Create `data.yaml`:
+Given a `testapp` django application with the following models
+
+```python
+from django.db import models
+from django.contrib.auth.models import User
+
+class Person(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="people")
+    pen_name = models.CharField(max_length=100)
+    bio = models.TextField()
+
+class Publisher(models.Model):
+    name = models.CharField(max_length=200)
+    country = models.CharField(max_length=100)
+
+class Book(models.Model):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('PUBLISHED', 'Published'),
+        ('ARCHIVED', 'Archived'),
+    ]
+
+    title = models.CharField(max_length=200)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="books")
+    publisher = models.ForeignKey(Publisher, on_delete=models.CASCADE, related_name="books")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+```
+
+Create a `data.yaml` file with the following content:
 
 ```yaml
 testapp:
@@ -39,10 +85,68 @@ testapp:
       status: "PUBLISHED"
 ```
 
-Load it:
+then load it via the following command:
 
 ```bash
 python manage.py nested_seed data.yaml --verbose
+```
+
+The command will navigate through the hierarchy and create the corresponding records according to the rules specified in the YAML Structure below.
+
+### Another example with more features
+
+```yaml
+auth:                                   # We can target any app
+  User:
+    - $ref: alice                       # $ref will assign an internal reference to the node
+      username: "alice"
+      email: "alice@example.com"
+
+testapp:
+  Technology:
+    - $ref: python
+      name: "Python"
+      version: "3.11"
+    - $ref: django
+      name: "Django"
+      version: "4.2"
+
+  Organization:
+    - name: "TechCorp"
+      code: "TC"
+      founded_date: "2020-01-01"
+      configuration:                    # O2O or FK - inline declaration
+        timezone: "UTC"
+        currency: "USD"
+      divisions:                        # FK's Reverse relationship "divisions"
+        - name: "Engineering"
+          location: "NYC"
+          budget: "1000000.00"
+          department_set:               # FK's Reverse relationship (default `_set`)
+            - name: "Backend"
+              code: "BE-01"
+              manager: "$alice"         # "$alice" will point to the record with $ref
+              project_set:              # another reverse declaration
+                - name: "API Rewrite"
+                  status: "IN_PROGRESS"
+                  start_date: "2024-01-01"
+                  technologies:         # ManyToMany works just as well
+                    - "$python"
+                    - "$django"
+                  task_set:             # another reverse relationship
+                    - title: "Design endpoints"
+                      description: "Define REST API"
+                      priority: "HIGH"
+                      status: "DONE"
+                      assigned_to: "$alice"
+                      estimated_hours: 20
+                    - title: "Implement auth"
+                      description: "Add JWT support"
+                      priority: "HIGH"
+                      status: "IN_PROGRESS"
+                      assigned_to: "$alice"
+                      estimated_hours: 40
+
 ```
 
 ## More Examples
