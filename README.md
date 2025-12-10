@@ -88,7 +88,7 @@ testapp:
 then load it via the following command:
 
 ```bash
-python manage.py nested_seed data.yaml --verbose
+python manage.py nested_seed data.yaml
 ```
 
 The command will navigate through the hierarchy and create the corresponding records according to the rules specified in the YAML Structure below.

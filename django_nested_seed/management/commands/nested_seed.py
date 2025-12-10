@@ -25,11 +25,6 @@ class Command(BaseCommand):
             type=str,
             help="YAML files to load (can specify multiple files)",
         )
-        parser.add_argument(
-            "--verbose",
-            action="store_true",
-            help="Enable verbose output showing detailed progress",
-        )
 
     def handle(self, *args, **options):
         """
@@ -40,28 +35,13 @@ class Command(BaseCommand):
             **options: Command options
         """
         yaml_files = options["yaml_files"]
-        verbose = options["verbose"]
+        verbosity = options["verbosity"]
 
         try:
-            # Load configuration from Django settings
             config = SeedConfig.from_django_settings()
-
-            # Create loader
-            loader = SeedLoader(config=config, verbose=verbose)
-
-            # Load seed data
+            loader = SeedLoader(config=config, verbose=(verbosity >= 1))
             loader.load(yaml_files)
-
-            # Success message (loader already prints detailed info in verbose mode)
-            if not verbose:
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"✓ Successfully loaded {loader.registry.count()} objects"
-                    )
-                )
-
         except NestedSeedError as e:
-            # Nested seed specific errors
             self.stderr.write(self.style.ERROR(f"Error loading seed data: {e}"))
             raise CommandError(str(e))
 
