@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 
 from django_nested_seed.config.base import SeedConfig
 from django_nested_seed.core.loader import SeedLoader
-from tests.testapp.models import Profile, Company, Team, Category
+from tests.testapp.models import Profile, Company, Team, Category, Author, Book, Publisher
 
 
 @pytest.mark.django_db
@@ -175,3 +175,54 @@ testapp:
 
         two_one = Category.objects.get(slug="two-one")
         assert two_one.parent == two
+
+    def test_yaml_features_anchors_and_merge(self):
+        """Test YAML features: anchors, aliases, and merge keys (inheritance)."""
+        config = SeedConfig.from_django_settings()
+        loader = SeedLoader(config=config, verbose=False)
+
+        example_file = "examples/13_yaml_features.yaml"
+        loader.load([example_file])
+
+        assert User.objects.count() == 1
+        assert Category.objects.count() == 1
+        assert Publisher.objects.count() == 2
+        assert Author.objects.count() == 1
+        assert Book.objects.count() == 3
+
+        alice = User.objects.get(username="alice")
+        assert alice.email == "alice@example.com"
+
+        python_cat = Category.objects.get(slug="python")
+        assert python_cat.name == "Python"
+
+        oreilly = Publisher.objects.get(name="O'Reilly Media")
+        assert oreilly.country == "USA"
+
+        manning = Publisher.objects.get(name="Manning")
+        assert manning.country == "USA"
+
+        author = Author.objects.get(pen_name="Alice Johnson")
+        assert author.user == alice
+        assert "Senior Python developer" in author.bio
+        assert "system design" in author.bio
+
+        base_book = Book.objects.get(title="Python Patterns")
+        assert base_book.author == author
+        assert base_book.publisher == oreilly
+        assert base_book.status == "PUBLISHED"
+        assert str(base_book.published_at) == "2024-01-15"
+        assert base_book.categories.count() == 1
+
+        advanced = Book.objects.get(title="Advanced Python")
+        assert advanced.author == author
+        assert advanced.publisher == oreilly
+        assert advanced.status == "PUBLISHED"
+        assert str(advanced.published_at) == "2024-06-20"
+        assert advanced.categories.count() == 1
+
+        best_practices = Book.objects.get(title="Python Best Practices")
+        assert best_practices.author == author
+        assert best_practices.publisher == manning
+        assert best_practices.status == "PUBLISHED"
+        assert str(best_practices.published_at) == "2024-01-15"

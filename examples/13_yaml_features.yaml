@@ -1,0 +1,46 @@
+# YAML Features: anchors, aliases, merge keys, multi-line strings
+
+auth:
+  User:
+    - $ref: alice
+      username: "alice"
+      email: "alice@example.com"
+
+testapp:
+  Category:
+    - $ref: python
+      name: "Python"
+      slug: "python"
+
+  Publisher:
+    - $ref: oreilly
+      name: "O'Reilly Media"
+      country: &usa "USA"  # Anchor for reuse
+
+    - $ref: manning
+      name: "Manning"
+      country: *usa  # Alias: reuse value
+
+  Author:
+    - user: "$alice"
+      pen_name: "Alice Johnson"
+      bio: |
+        Senior Python developer.
+        Expert in system design.
+      books:
+        # Base template with anchor
+        - &book_template
+          title: "Python Patterns"
+          publisher: "$oreilly"
+          status: "PUBLISHED"
+          published_at: "2024-01-15"
+          categories: ["$python"]
+
+        # Inherit using merge key (<<), override fields
+        - <<: *book_template
+          title: "Advanced Python"
+          published_at: "2024-06-20"
+
+        - <<: *book_template
+          title: "Python Best Practices"
+          publisher: "$manning"

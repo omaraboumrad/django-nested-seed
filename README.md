@@ -165,6 +165,7 @@ See the [`examples/`](examples/) directory for complete examples of each feature
 - [**Complex Multi-Level**](examples/10_complex_multi_level.yaml) - Comprehensive example combining all features
 - [**Database Lookups**](examples/11_database_lookups.yaml) - Reference existing database records using `@lookup`
 - [**Mixed References and Lookups**](examples/12_mixed_ref_and_lookup.yaml) - Combine `$ref` and `@lookup`
+- [**YAML Features**](examples/13_yaml_features.yaml) - YAML anchors, aliases, and multi-line strings
 
 ## YAML Structure
 
