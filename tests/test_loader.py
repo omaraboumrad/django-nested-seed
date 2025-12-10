@@ -135,3 +135,43 @@ class TestSeedLoader:
 
         assert javascript_cat.children.count() == 2
         assert set(javascript_cat.children.values_list("slug", flat=True)) == {"react", "vue"}
+
+    def test_no_explicit_refs_identity_uniqueness(self):
+        """Test that auto-generated keys are unique across different parents."""
+        yaml_content = """
+testapp:
+  Category:
+    - name: "one"
+      slug: "one"
+      children:
+        - name: "one.one"
+          slug: "one-one"
+    - name: "two"
+      slug: "two"
+      children:
+        - name: "two.one"
+          slug: "two-one"
+"""
+
+        config = SeedConfig.from_django_settings()
+        loader = SeedLoader(config=config, verbose=False)
+
+        # This should not raise ValueError about duplicate identity
+        loader.load_from_string(yaml_content)
+
+        # Verify all objects created
+        assert Category.objects.count() == 4
+
+        one = Category.objects.get(slug="one")
+        assert one.parent is None
+        assert one.children.count() == 1
+
+        two = Category.objects.get(slug="two")
+        assert two.parent is None
+        assert two.children.count() == 1
+
+        one_one = Category.objects.get(slug="one-one")
+        assert one_one.parent == one
+
+        two_one = Category.objects.get(slug="two-one")
+        assert two_one.parent == two
