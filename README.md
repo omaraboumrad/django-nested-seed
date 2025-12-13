@@ -2,6 +2,8 @@
 
 A Django package for loading seed data from YAML files with support for nested relationships.
 
+You can find the fulle documentation at https://django-nested-seed.readthedocs.io/
+
 Before you use this package you should ask yourself the following questions:
 
 - Do I want the ability to programmatically create seed/fixture data?
